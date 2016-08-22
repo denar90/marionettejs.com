@@ -79,6 +79,14 @@
         </a>
         <div class="styled-select">
           <select id="version-dropdown">
+            <% if (file.tag == 'master') { %>
+              <option value="current" selected="selected">Current Version</option>
+            <% }  else { %>
+              <option value="current">Current Version</option>
+            <% } %>
+
+            <option value="" disabled>-----------------------</option>
+
             <% tags.forEach(function(tag) { %>
               <% if (file.tag == tag) { %>
                 <option value="<%- tag %>" selected="selected"><%- tag %></option>

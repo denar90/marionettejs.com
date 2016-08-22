@@ -74,7 +74,8 @@ _.extend(Compiler.prototype, {
       this.indexTemplate = _.template(indexTemplate);
       this.svgIcons = svgIcons;
       this.tmpDir   = dir;
-      this.tags     = tags
+      this.tags     = tags;
+      this.branch   = 'master';
     });
   },
 
@@ -103,21 +104,20 @@ _.extend(Compiler.prototype, {
     return pageTitle.charAt(0).toUpperCase() + pageTitle.slice(1);
   },
 
-    getPageDescription: function(compiledContents) {
-        // Blanket assumption that the first paragraph is
-        // suitable for a short description.
-        var description = compiledContents.match(/<p>([\s\S]*?)<\/p>/)[1];
+  getPageDescription: function(compiledContents) {
+    // Blanket assumption that the first paragraph is
+    // suitable for a short description.
+    var description = compiledContents.match(/<p>([\s\S]*?)<\/p>/)[1];
 
-        return description
-            // force translation of breaks to a space
-            .replace(/<br>/g, ' ')
-            // remove remaining tags
-            .replace(/\<[^\>]*\>/g, '');
-//        }
-    },
+    return description
+      // force translation of breaks to a space
+      .replace(/<br>/g, ' ')
+      // remove remaining tags
+      .replace(/\<[^\>]*\>/g, '');
+  },
 
   readFiles: function() {
-    return Promise.bind(this).return(this.tags).map(function(tag) {
+    return Promise.bind(this).return(this.tags.concat(this.branch)).map(function(tag) {
       return this.repo.checkoutAsync(tag).bind(this).then(function() {
         return fs.readdirAsync(this.paths.src);
       }).filter(function(filename) {
@@ -197,7 +197,7 @@ _.extend(Compiler.prototype, {
         });
 
         // If this is the latest release ensure to write the /docs/current file
-        if (files[0].tag == GittyCache.releaseTag) {
+        if (files[0].tag == this.branch) {
           return fs.writeFileAsync(indexPath, indexMarkup)
           .then(function() {
             var currentPath = path.resolve(files[0].pathname, '../current/');
@@ -218,7 +218,7 @@ _.extend(Compiler.prototype, {
         file.contents = this.template({
           content : file.contents,
           svgIcons: this.svgIcons,
-          tags    : validTags(this.tags),
+          tags    : validTags(this.tags).concat(this.branch),
           tag     : files[0].tag,
           file    : file,
           files   : files
@@ -235,7 +235,7 @@ _.extend(Compiler.prototype, {
       })
       .then(function(files) {
         // Guard clause.. skip unless latest release
-        if (files[0].tag != GittyCache.releaseTag) {
+        if (files[0].tag != this.branch) {
           return;
         }
 

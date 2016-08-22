@@ -7,7 +7,9 @@ var path       = require('path');
 var https      = require('https');
 var _          = require('underscore');
 var request    = require('request');
+var GitHubApi  = require('github');
 var CONSTS     = require('../consts');
+var dotEnv     = require('dotenv').config();
 
 var Compiler = function(paths) {
   /**
@@ -15,6 +17,8 @@ var Compiler = function(paths) {
    */
   this.VIDEOS_TYPE = CONSTS.AR.TOPICS[2].TYPE;
   this.EXAMPLES_TYPE = CONSTS.AR.TOPICS[3].TYPE;
+
+  this.github = new GitHubApi();
 
   this.paths = paths;
 };
@@ -202,30 +206,40 @@ _.extend(Compiler.prototype, {
    * @returns {Promise}
    */
   getGithubReposData: function (repos) {
+    this.githubAuth();
+
     return Promise.map(repos, function(repo, index) {
-      var resUrl = 'https://api.github.com/repos/' + repo;
-      var options = {
-        url: resUrl,
-        headers: {
-          'User-Agent': 'request'
-        }
-      };
       return new Promise(function (resolve, reject) {
-        request(options, function (error, response, body) {
-          if (error) {
-            reject(err);
-          }
-          resolve(JSON.parse(response.body));
+        this.github.repos.get({
+          user: repo.split('/')[0],
+          repo: repo.split('/')[1]
+        }, function (err, res) {
+          if (err) reject(err);
+
+          resolve(res);
         });
-      }).then(function(data) {
+      }.bind(this)).then(function(data) {
         var description = data.description || data.html_url;
-        return {
-          avatar_url: data.owner.avatar_url,
-          url: data.html_url,
-          description: description
-        };
+
+        if (data.owner) {
+          return {
+            avatar_url: data.owner.avatar_url,
+            url: data.html_url,
+            description: description
+          };
+        }
       });
     }.bind(this));
+  },
+
+  /**
+   * Auths to github with process env credentials
+   */
+  githubAuth: function() {
+    this.github.authenticate({
+      type: 'oauth',
+      token: process.env.AUTH_TOKEN
+    });
   },
 
   /**

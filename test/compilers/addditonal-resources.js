@@ -42,7 +42,7 @@ test('Get guthub username&reponame from urls', async t => {
   t.deepEqual(githubRepos, dataMochs.githubRepos);
 });
 
-test('Get youtube data', async t => {
+test('Get github data', async t => {
   const fileData = await fs.readFileSync(fixtures.EXAMPLES, 'utf8');
   const parsedFileData = compiler.listToArray(fileData);
   const urlRepos = _.pluck(parsedFileData, 'url');
